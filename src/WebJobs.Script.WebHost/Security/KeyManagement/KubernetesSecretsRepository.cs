@@ -25,10 +25,13 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
     public class KubernetesSecretsRepository : BaseSecretsRepository
     {
         private const string kubernetesSecretPath = "/run/secrets/kubernetes.io/serviceaccount";
-        private const string HostPrefix = "host.";
+        // host.master = value
         private const string MasterKey = "host.master";
-        private const string FunctionKeyPrefix = "host.functions.";
+        // host.function.{keyName} = value
+        private const string FunctionKeyPrefix = "host.function.";
+        // host.systemKey.{keyName} = value
         private const string SystemKeyPrefix = "host.systemKey.";
+        // functions.{functionName}.{keyName} = value
         private const string FunctionPrefix = "functions.";
         private readonly string _secretName;
         private readonly IKubernetesClient _kubernetesClient;
@@ -60,7 +63,29 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
 
         public override async Task WriteAsync(ScriptSecretsType type, string functionName, ScriptSecrets secrets)
         {
-            // TODO
+            // var keys = await _kubernetesClient.GetSecret(_secretName);
+
+            // if (type == ScriptSecretsType.Host && secrets is HostSecrets)
+            // {
+            //     var hostSecret = secrets as HostSecrets;
+            //     if (hostSecret.MasterKey != null)
+            //     {
+            //         keys[MasterKey] = hostSecret.MasterKey.Value.ToBase64();
+            //     }
+
+            //     if (hostSecret.FunctionKeys != null)
+            //     {
+            //         foreach (var key in hostSecret.FunctionKeys)
+            //         {
+            //             keys[""]
+            //         }
+            //     }
+            // }
+            // else
+            // {
+
+            // }
+
             string filePath = GetSecretsSentinelFilePath(type, functionName);
             await FileUtility.WriteAsync(filePath, DateTime.UtcNow.ToString());
         }
@@ -101,11 +126,11 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
                 }
                 else if (pair.Key.StartsWith(FunctionKeyPrefix))
                 {
-                    hostSecrets.FunctionKeys.Add(ParseHostFunctionKey(pair.Key, pair.Value));
+                    hostSecrets.FunctionKeys.Add(ParseKeyWithPrefix(FunctionKeyPrefix, pair.Key, pair.Value));
                 }
                 else if (pair.Key.StartsWith(SystemKeyPrefix))
                 {
-                    hostSecrets.SystemKeys.Add(ParseHostSystemKey(pair.Key, pair.Value));
+                    hostSecrets.SystemKeys.Add(ParseKeyWithPrefix(SystemKeyPrefix, pair.Key, pair.Value));
                 }
             }
 
@@ -114,28 +139,18 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
         private async Task<ScriptSecrets> ReadFunctionSecrets(string functionName)
         {
             IDictionary<string, string> secrets = await _kubernetesClient.GetSecret(_secretName);
+            var prefix = $"{FunctionPrefix}{functionName}.";
 
             return new FunctionSecrets()
             {
                 Keys = secrets
-                    .Select(p => ParseFunctionKey(p.Key, p.Value))
+                    .Where(p => p.Key.StartsWith(prefix))
+                    .Select(p => ParseKeyWithPrefix(prefix, p.Key, p.Value))
                     .ToList()
             };
         }
 
-        private Key ParseHostSystemKey(string key, string value)
-        {
-            throw new NotImplementedException();
-        }
-
-        private Key ParseHostFunctionKey(string key, string value)
-        {
-            throw new NotImplementedException();
-        }
-
-        private Key ParseFunctionKey(string key, string value)
-        {
-            throw new NotImplementedException();
-        }
+        private Key ParseKeyWithPrefix(string prefix, string key, string value)
+            => new Key(key.Substring(prefix.Length), value);
     }
 }
