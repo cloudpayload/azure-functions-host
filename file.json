@@ -1,0 +1,6 @@
+{
+    "host.master": "",
+    "host.functions.{name}": "",
+    "host.systemKey.{name}": "",
+    "functions.{functionName}.{keyName}": ""
+}
