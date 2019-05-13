@@ -24,7 +24,6 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
     /// </summary>
     public class KubernetesSecretsRepository : BaseSecretsRepository
     {
-        private const string kubernetesSecretPath = "/run/secrets/kubernetes.io/serviceaccount";
         // host.master = value
         private const string MasterKey = "host.master";
         // host.function.{keyName} = value
@@ -83,7 +82,6 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
             // }
             // else
             // {
-
             // }
 
             string filePath = GetSecretsSentinelFilePath(type, functionName);
@@ -136,6 +134,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
 
             return hostSecrets;
         }
+
         private async Task<ScriptSecrets> ReadFunctionSecrets(string functionName)
         {
             IDictionary<string, string> secrets = await _kubernetesClient.GetSecret(_secretName);
